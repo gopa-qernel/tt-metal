@@ -232,7 +232,7 @@ pip install ttnn-visualizer
 
 
 ### Tenstorrent Bounty Program Terms and Conditions
-This repo is a part of Tenstorrent’s bounty program. If you are interested in helping to improve tt-metal, please make sure to read the [Tenstorrent Bounty Program Terms and Conditions](https://docs.tenstorrent.com/bounty_terms.html) before heading to the issues tab. Look for the issues that are tagged with both “bounty” and difficulty level!
+This repo is a part of Tenstorrent's bounty program. If you are interested in helping to improve tt-metal, please make sure to read the [Tenstorrent Bounty Program Terms and Conditions](https://docs.tenstorrent.com/bounty_terms.html) before heading to the issues tab. Look for the issues that are tagged with both "bounty" and difficulty level!
 
 ## License
 TT-Metalium and TTNN are licensed under the Apache 2.0 License, as detailed in [LICENSE](LICENSE) and [LICENSE_understanding.txt](LICENSE_understanding.txt).
@@ -245,3 +245,324 @@ Some distributable forms of this project—such as manylinux-compliant wheels—
 - libevent (when built with multihost support)
 
 These libraries are bound by their own license terms.
+
+# Tenstorrent Tensix Architecture Emulator
+
+A comprehensive C++ emulation environment for the Tenstorrent Tensix architecture with an end-to-end Large Language Model (LLM) implementation.
+
+## Overview
+
+This project provides a complete software emulation of the Tenstorrent Tensix architecture, designed to model the behavior of TT-Metal and Metalium programming framework. It includes a full implementation of a transformer-based LLM (similar to LLaMA) that demonstrates how modern AI workloads can be efficiently mapped to the Tensix architecture.
+
+## Features
+
+### 🏗️ Architecture Emulation
+- **72 Tensix Cores**: Full emulation of Wormhole n150 architecture
+- **Memory Hierarchy**: L1 cache (108MB SRAM) and DRAM (12GB) with realistic latencies
+- **Network-on-Chip (NoC)**: Inter-core communication with distance-based latency modeling
+- **Compute Engines**: Matrix multiplication, vector operations, and activation functions
+- **Data Formats**: Support for FP32, FP16, BFP16, FP8, and integer formats
+
+### 🧠 LLM Implementation
+- **Transformer Architecture**: Multi-head attention and feed-forward networks
+- **Parallel Execution**: Operations distributed across multiple Tensix cores
+- **Memory Management**: Efficient tensor allocation and data movement
+- **Token Generation**: Complete inference pipeline with text generation
+- **Configurable Models**: Support for various model sizes and configurations
+
+### ⚡ Performance Features
+- **Multi-threading**: Parallel execution across cores with thread safety
+- **Memory Bandwidth**: Realistic memory access patterns and bandwidth modeling
+- **Compute Scheduling**: Intelligent core selection and workload distribution
+- **Performance Metrics**: Detailed statistics and timing analysis
+
+## Architecture Details
+
+### Tensix Core Structure
+Each Tensix core contains:
+- **Compute Engine**: Matrix multiplication and vector operations
+- **Memory Interface**: Access to L1 cache and DRAM
+- **NoC Interface**: Communication with other cores
+- **RISC-V Processor**: Control and coordination (simulated)
+
+### Memory System
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│  L1 Cache   │    │     DRAM     │    │    Host     │
+│   108MB     │◄──►│     12GB     │◄──►│   Memory    │
+│  1ns lat    │    │  100ns lat   │    │             │
+│ 1000 GB/s   │    │  288 GB/s    │    │             │
+└─────────────┘    └──────────────┘    └─────────────┘
+```
+
+### Network-on-Chip
+- **Topology**: 2D mesh connecting all 72 cores
+- **Bandwidth**: High-speed inter-core communication
+- **Latency**: Distance-based routing with realistic delays
+- **Message Passing**: Efficient tensor data transfers
+
+## Building and Running
+
+### Prerequisites
+- C++17 compatible compiler (GCC 8+ or Clang 10+)
+- CMake 3.16 or higher
+- pthread library (usually included with system)
+
+### Quick Start
+```bash
+# Clone the repository
+git clone <repository-url>
+cd tensix-emulator
+
+# Build the project
+mkdir build && cd build
+cmake ..
+make
+
+# Run the emulator
+make run
+
+# Or run a quick demo (non-interactive)
+make demo
+```
+
+### Build Options
+```bash
+# Debug build with full logging
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+
+# Release build with optimizations
+cmake -DCMAKE_BUILD_TYPE=Release ..
+```
+
+## Usage Examples
+
+### Basic Operations Demo
+The emulator demonstrates basic Tensix operations:
+- Matrix multiplication (1024x1024)
+- Element-wise operations
+- Activation functions (ReLU, GELU)
+- Multi-core parallel execution
+
+### LLM Model Execution
+```cpp
+// Create Tensix device with 72 cores
+TensixDevice device(72);
+
+// Configure LLM model (LLaMA-style)
+ModelConfig config;
+config.hidden_dim = 4096;
+config.num_layers = 32;
+config.num_heads = 32;
+
+// Initialize model
+LlamaModel model(config, device);
+
+// Generate text from prompt
+std::vector<uint32_t> prompt = {1, 15, 234, 567};
+model.generate(prompt, 10);
+```
+
+### Custom Model Configuration
+```cpp
+// Small model for faster demonstration
+ModelConfig small_config;
+small_config.vocab_size = 1000;
+small_config.hidden_dim = 512;
+small_config.num_layers = 4;
+small_config.num_heads = 8;
+```
+
+## Architecture Comparison
+
+### vs. Traditional GPUs
+| Feature | Tensix | GPU |
+|---------|--------|-----|
+| **Cores** | 72 specialized | 1000s simple |
+| **Memory** | Distributed SRAM + DRAM | HBM |
+| **Programming** | Metal/Metalium | CUDA/OpenCL |
+| **Precision** | FP16/BFP16/FP8 | FP32/FP16 |
+| **Communication** | NoC | High-speed interconnect |
+
+### Performance Benefits
+- **Specialized Compute**: Optimized for AI workloads
+- **Memory Efficiency**: Hierarchical memory reduces bandwidth pressure
+- **Parallel Execution**: Fine-grained parallelism across cores
+- **Data Format Flexibility**: Multiple precision formats for efficiency
+
+## LLM Mapping Strategy
+
+### Attention Mechanism
+```
+Q, K, V Projections → Parallel execution across cores
+Attention Scores   → Dedicated core with optimized matmul
+Softmax           → Vector engine activation
+Output Projection → Additional core for final linear layer
+```
+
+### Feed-Forward Networks
+```
+Gate Projection  → Core A (with SiLU activation)
+Up Projection    → Core B (parallel execution)
+Element-wise Mul → Core C (gating operation)
+Down Projection  → Core D (final linear layer)
+```
+
+### Memory Management
+- **Weights**: Stored in DRAM with L1 cache optimization
+- **Activations**: Distributed across cores in L1 cache
+- **Gradients**: Communicated via NoC for training scenarios
+
+## Performance Analysis
+
+The emulator provides detailed performance metrics:
+- **Compute Utilization**: Core usage statistics
+- **Memory Bandwidth**: L1 and DRAM access patterns
+- **NoC Traffic**: Inter-core communication volume
+- **Execution Time**: Operation-level timing analysis
+
+### Sample Output
+```
+=== Device Statistics ===
+Active cores: 72
+NoC bytes transferred: 2,048,576
+Memory System Statistics:
+  Bank 0 (L1): 108MB, Latency: 1ns, Bandwidth: 1000GB/s
+  Bank 1 (DRAM): 12288MB, Latency: 100ns, Bandwidth: 288GB/s
+
+Tensix Architecture Benefits:
+  ✓ Parallel execution across 72 cores
+  ✓ Specialized compute engines for matrix operations
+  ✓ High-bandwidth memory access (288 GB/s DRAM)
+  ✓ Efficient Network-on-Chip for inter-core communication
+```
+
+## Technical Implementation
+
+### Core Components
+
+#### `TensixDevice`
+- Main orchestrator managing 72 Tensix cores
+- Memory system coordination
+- Network-on-Chip management
+- Performance monitoring
+
+#### `TensixCore`
+- Individual compute unit emulation
+- Local memory management
+- Compute engine interface
+- NoC communication
+
+#### `ComputeEngine`
+- Matrix multiplication operations
+- Vector and element-wise operations
+- Activation function implementations
+- Realistic timing simulation
+
+#### `MemorySystem`
+- Multi-level memory hierarchy
+- Bandwidth and latency modeling
+- Memory allocation management
+- Access pattern tracking
+
+#### `NetworkOnChip`
+- Message-based communication
+- Distance-aware latency modeling
+- Bandwidth simulation
+- Concurrent data transfers
+
+### LLM Components
+
+#### `LlamaModel`
+- Complete transformer implementation
+- Layer-wise execution pipeline
+- Token generation logic
+- Weight management
+
+#### `MultiHeadAttention`
+- Parallel Q, K, V projections
+- Attention score computation
+- Softmax and output projection
+- Multi-core execution
+
+#### `FeedForward`
+- Gate and up projections
+- SiLU/GELU activations
+- Element-wise operations
+- Down projection
+
+## Development and Extension
+
+### Adding New Operations
+```cpp
+class ComputeEngine {
+    void customOperation(const Tensor& input, Tensor& output) {
+        // Implementation with timing simulation
+        auto compute_time = calculateTiming(input.getTotalSize());
+        std::this_thread::sleep_for(compute_time);
+        // ... operation logic
+    }
+};
+```
+
+### Custom Model Architectures
+```cpp
+class CustomModel {
+    void forward(const std::vector<uint32_t>& tokens, Tensor& output) {
+        // Implement custom architecture
+        // Utilize TensixDevice for parallel execution
+    }
+};
+```
+
+### Performance Tuning
+- Adjust core count for different Tensix configurations
+- Modify memory latencies and bandwidths
+- Customize NoC topology and routing
+- Add custom data formats and operations
+
+## Research Applications
+
+This emulator is valuable for:
+- **Algorithm Development**: Testing new AI algorithms on Tensix
+- **Performance Analysis**: Understanding bottlenecks and optimization opportunities
+- **Architecture Exploration**: Evaluating different core counts and memory configurations
+- **Educational Purposes**: Learning about specialized AI hardware architectures
+
+## Limitations and Future Work
+
+### Current Limitations
+- Simplified compute timing models
+- Basic NoC topology simulation
+- Limited data format conversions
+- No cycle-accurate modeling
+
+### Future Enhancements
+- More detailed timing models
+- Support for additional AI model architectures
+- Integration with real TT-Metal toolchain
+- Cycle-accurate simulation capabilities
+- Support for training workloads
+
+## Contributing
+
+We welcome contributions to improve the emulator:
+1. **Bug Reports**: Issues with compilation or execution
+2. **Feature Requests**: New operations or model architectures
+3. **Performance Improvements**: Optimization suggestions
+4. **Documentation**: Improvements to guides and examples
+
+## References
+
+- [TT-Metal GitHub Repository](https://github.com/tenstorrent/tt-metal)
+- [Metalium Programming Guide](https://github.com/tenstorrent/tt-metal/blob/main/METALIUM_GUIDE.md)
+- [Tenstorrent Hardware Documentation](https://tenstorrent.com/hardware/)
+- [LLaMA: Open and Efficient Foundation Language Models](https://arxiv.org/abs/2302.13971)
+
+## License
+
+This project is provided as an educational and research tool. Please refer to individual component licenses for specific terms.
+
+---
+
+*This emulator is an independent implementation for educational purposes and is not officially affiliated with Tenstorrent Inc.*

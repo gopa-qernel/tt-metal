@@ -173,9 +173,10 @@ private:
     
 public:
     ComputeEngine(uint32_t id) : core_id(id) {}
+    virtual ~ComputeEngine() = default;
     
     // Matrix multiplication operation
-    void matmul(const Tensor& a, const Tensor& b, Tensor& c) {
+    virtual void matmul(const Tensor& a, const Tensor& b, Tensor& c) {
         std::lock_guard<std::mutex> lock(compute_mutex);
         busy = true;
         
@@ -199,7 +200,7 @@ public:
     }
     
     // Element-wise operations
-    void elementwise_add(const Tensor& a, const Tensor& b, Tensor& c) {
+    virtual void elementwise_add(const Tensor& a, const Tensor& b, Tensor& c) {
         std::lock_guard<std::mutex> lock(compute_mutex);
         busy = true;
         
@@ -214,7 +215,7 @@ public:
     }
     
     // Activation functions
-    void relu(const Tensor& input, Tensor& output) {
+    virtual void relu(const Tensor& input, Tensor& output) {
         std::lock_guard<std::mutex> lock(compute_mutex);
         busy = true;
         
@@ -227,7 +228,7 @@ public:
         busy = false;
     }
     
-    void gelu(const Tensor& input, Tensor& output) {
+    virtual void gelu(const Tensor& input, Tensor& output) {
         std::lock_guard<std::mutex> lock(compute_mutex);
         busy = true;
         

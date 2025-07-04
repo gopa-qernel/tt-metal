@@ -18,13 +18,60 @@ endif()
 find_package(Threads REQUIRED)
 
 # Create the main executable
-add_executable(tensix_emulator main.cpp)
+add_executable(tensix_emulator 
+    main.cpp
+    tensix_emulator.cpp
+    llm_model.cpp
+)
+
+# Create the enhanced MatMul analysis executable
+add_executable(enhanced_matmul_analysis 
+    enhanced_matmul_analysis.cpp
+    tensix_emulator.cpp
+    llm_model.cpp
+)
+
+# Create the enhanced MatMul main demo
+add_executable(enhanced_matmul_main 
+    enhanced_matmul_main.cpp
+    tensix_emulator.cpp
+    llm_model.cpp
+)
+
+# Performance analysis tool
+add_executable(performance_profiler 
+    performance_profiler.cpp
+    tensix_emulator.cpp
+)
+
+# LLaMA-7B performance analysis
+add_executable(llama7b_performance_analysis 
+    llama7b_performance_analysis.cpp
+    tensix_emulator.cpp
+    llm_model.cpp
+)
 
 # Link libraries
 target_link_libraries(tensix_emulator PRIVATE Threads::Threads)
+target_link_libraries(enhanced_matmul_analysis PRIVATE Threads::Threads)
+target_link_libraries(enhanced_matmul_main PRIVATE Threads::Threads)
+target_link_libraries(performance_profiler PRIVATE Threads::Threads)
+target_link_libraries(llama7b_performance_analysis PRIVATE Threads::Threads)
 
 # Set output directory
 set_target_properties(tensix_emulator PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+set_target_properties(enhanced_matmul_analysis PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+set_target_properties(enhanced_matmul_main PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+set_target_properties(performance_profiler PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+)
+set_target_properties(llama7b_performance_analysis PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
 )
 

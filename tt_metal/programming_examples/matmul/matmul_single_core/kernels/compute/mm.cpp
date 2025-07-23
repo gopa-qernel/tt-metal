@@ -38,6 +38,7 @@ namespace NAMESPACE {
  * the appropriate tiles for each output tile computation.
  */
 void MAIN {
+    DeviceZoneScopedN("matmul_scope");
     const uint32_t Mt = get_compile_time_arg_val(0);
     const uint32_t Kt = get_compile_time_arg_val(1);
     const uint32_t Nt = get_compile_time_arg_val(2);
